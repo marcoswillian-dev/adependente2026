@@ -1,10 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Trophy } from "lucide-react";
 
@@ -12,20 +9,24 @@ export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const { signIn, signUp } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"in" | "up">("in");
 
-  const handle = async (mode: "in" | "up") => {
+  const handle = async () => {
+    const email = emailRef.current?.value ?? "";
+    const password = passwordRef.current?.value ?? "";
+    if (!email || !password) return toast.error("Preencha email e senha");
     setLoading(true);
     const { error } = mode === "in" ? await signIn(email, password) : await signUp(email, password);
     setLoading(false);
     if (error) return toast.error(error);
     if (mode === "up") {
-      toast.success("Conta criada! Verifique seu e-mail se necessário.");
+      toast.success("Conta criada!");
     } else {
       toast.success("Bem-vindo!");
-      window.location.href = "/perfil";
+      window.location.href = "/";
     }
   };
 
@@ -37,23 +38,24 @@ function LoginPage() {
             <Trophy className="h-6 w-6 text-primary-foreground" />
           </div>
           <h1 className="font-display text-3xl tracking-wider">ENTRAR</h1>
-          <p className="text-sm text-muted-foreground">Jogadores e admin acessam por aqui. O primeiro cadastro vira admin.</p>
         </div>
-        <Tabs defaultValue="in">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="in">Entrar</TabsTrigger>
-            <TabsTrigger value="up">Criar conta</TabsTrigger>
-          </TabsList>
-          {(["in", "up"] as const).map(m => (
-            <TabsContent key={m} value={m} className="space-y-4 pt-4">
-              <div><Label>E-mail</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
-              <div><Label>Senha</Label><Input type="password" value={password} onChange={e => setPassword(e.target.value)} /></div>
-              <Button className="w-full" onClick={() => handle(m)} disabled={loading || !email || !password}>
-                {m === "in" ? "Entrar" : "Criar conta"}
-              </Button>
-            </TabsContent>
-          ))}
-        </Tabs>
+        <div className="mb-4 flex rounded-xl border border-border overflow-hidden">
+          <button className={`flex-1 py-2 text-sm font-bold ${mode === "in" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`} onClick={() => setMode("in")}>Entrar</button>
+          <button className={`flex-1 py-2 text-sm font-bold ${mode === "up" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`} onClick={() => setMode("up")}>Criar conta</button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">E-mail</label>
+            <input ref={emailRef} type="email" className="mt-1 w-full rounded-xl border border-border bg-secondary px-3 py-2 text-sm text-foreground" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Senha</label>
+            <input ref={passwordRef} type="password" className="mt-1 w-full rounded-xl border border-border bg-secondary px-3 py-2 text-sm text-foreground" />
+          </div>
+          <Button className="w-full" onClick={handle} disabled={loading}>
+            {loading ? "Aguarde..." : mode === "in" ? "Entrar" : "Criar conta"}
+          </Button>
+        </div>
       </div>
     </div>
   );
