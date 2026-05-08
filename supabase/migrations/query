@@ -1,0 +1,9 @@
+-- 1. Garante que a coluna existe (caso o comando anterior tenha falhado)
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS email text;
+
+-- 2. Limpa o cache de permissões (Isso resolve o erro de "cache cache")
+NOTIFY pgrst, 'reload schema';
+
+-- 3. Concede permissão para a coluna (caso o RLS esteja bloqueando)
+GRANT ALL ON TABLE public.players TO authenticated;
+GRANT ALL ON TABLE public.players TO service_role;
