@@ -7,11 +7,6 @@ export default defineConfig({
   vite: {
     build: {
       chunkSizeWarningLimit: 1000,
-      rollupOptions: {
-        input: {
-          main: 'src/client.tsx'
-        }
-      }
     },
   },
 });
