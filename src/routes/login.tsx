@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,8 +21,12 @@ function LoginPage() {
     const { error } = mode === "in" ? await signIn(email, password) : await signUp(email, password);
     setLoading(false);
     if (error) return toast.error(error);
-    if (mode === "up") toast.success("Conta criada! Verifique seu e-mail se necessário.");
-    else { toast.success("Bem-vindo!"); navigate({ to: "/perfil" }); }
+    if (mode === "up") {
+      toast.success("Conta criada! Verifique seu e-mail se necessário.");
+    } else {
+      toast.success("Bem-vindo!");
+      window.location.href = "/perfil";
+    }
   };
 
   return (
