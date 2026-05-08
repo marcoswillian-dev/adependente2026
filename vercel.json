@@ -1,15 +1,19 @@
 {
   "buildCommand": "bun run build",
-  "outputDirectory": "dist/client",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "headers": [
+  "outputDirectory": "dist",
+  "functions": {
+    "dist/server/index.js": {
+      "runtime": "edge"
+    }
+  },
+  "routes": [
     {
-      "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "src": "/assets/(.*)",
+      "dest": "/dist/client/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/server/index.js"
     }
   ]
 }
