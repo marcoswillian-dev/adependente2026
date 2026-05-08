@@ -2,14 +2,16 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   tanstackStart: {
-    server: {
-      entry: "server",
-      preset: "vercel-edge",
-    },
+    server: { entry: "server" },
   },
   vite: {
     build: {
       chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        input: {
+          main: 'src/client.tsx'
+        }
+      }
     },
   },
 });
