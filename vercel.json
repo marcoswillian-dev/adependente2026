@@ -1,19 +1,7 @@
 {
   "buildCommand": "bun run build",
-  "outputDirectory": "dist",
-  "functions": {
-    "dist/server/index.js": {
-      "runtime": "edge"
-    }
-  },
-  "routes": [
-    {
-      "src": "/assets/(.*)",
-      "dest": "/dist/client/assets/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/server/index.js"
-    }
+  "outputDirectory": "dist/client",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
