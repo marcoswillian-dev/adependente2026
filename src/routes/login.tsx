@@ -10,11 +10,11 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const { signIn, signUp, loading: authLoading } = useAuth();
-  const navigate = useNavigate(); // Importante para redirecionar após o login
+  const navigate = useNavigate();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<"in" | "up">("in");
-  const [localLoading, setLocalLoading] = useState(false); // Loading local para controle rigoroso do botão
+  const [localLoading, setLocalLoading] = useState(false);
 
   const handle = async () => {
     const email = emailRef.current?.value ?? "";
@@ -27,35 +27,37 @@ function LoginPage() {
     setLocalLoading(true);
 
     try {
-      // Executa a autenticação
       const result = mode === "in" 
         ? await signIn(email, password) 
         : await signUp(email, password);
 
-      // O segredo está aqui: Tratamento do erro vindo do Supabase
+      // Tratamento de erro robusto para evitar que o botão trave em "Aguarde"
       if (result?.error) {
-        // Se for objeto de erro do Supabase, pegamos a mensagem
         const message = typeof result.error === 'string' ? result.error : result.error.message;
         toast.error(message || "Falha na autenticação");
-        setLocalLoading(false); // Destrava o botão se deu erro
+        setLocalLoading(false);
       } else {
         toast.success(mode === "in" ? "Login realizado!" : "Conta criada!");
         
-        // Em produção, o redirecionamento manual ajuda a evitar o "freeze"
         if (mode === "in") {
-          navigate({ to: "/" }); 
+          // Pequeno delay para garantir que a sessão foi gravada no storage
+          setTimeout(() => {
+            // Em vez de navigate, usamos window.location para um "reset" limpo
+            // Isso resolve o travamento visual do TanStack Router
+            window.location.href = "/";
+          }, 500);
         } else {
           setLocalLoading(false);
+          setMode("in");
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Erro no login:", err);
       toast.error("Erro inesperado ao conectar com o servidor");
-      setLocalLoading(false); // Destrava em caso de crash
+      setLocalLoading(false);
     }
   };
 
-  // Usamos o localLoading ou o authLoading para desativar o botão
   const isLoading = authLoading || localLoading;
 
   return (
