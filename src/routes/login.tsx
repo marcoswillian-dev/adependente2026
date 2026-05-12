@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Trophy } from "lucide-react";
@@ -9,7 +9,11 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
+  console.log("LOGIN PAGE RENDERIZOU");
+
   const { signIn, signUp } = useAuth();
+
+  console.log("AUTH CARREGADO");
 
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -17,11 +21,33 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"in" | "up">("in");
 
+  useEffect(() => {
+    console.log("LOGIN PAGE MONTADA");
+
+    return () => {
+      console.log("LOGIN PAGE DESMONTADA");
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log("MODE ALTERADO:", mode);
+  }, [mode]);
+
+  useEffect(() => {
+    console.log("LOADING ALTERADO:", loading);
+  }, [loading]);
+
   const handle = async () => {
+    console.log("HANDLE INICIADO");
+
     const email = emailRef.current?.value ?? "";
     const password = passwordRef.current?.value ?? "";
 
+    console.log("EMAIL:", email);
+    console.log("PASSWORD LENGTH:", password.length);
+
     if (!email || !password) {
+      console.log("EMAIL OU SENHA VAZIOS");
       return toast.error("Preencha email e senha");
     }
 
@@ -35,24 +61,26 @@ function LoginPage() {
           ? await signIn(email, password)
           : await signUp(email, password);
 
-      console.log("RESULTADO:", result);
+      console.log("RESULTADO AUTH:", result);
 
       if (result.error) {
-        console.error("ERRO:", result.error);
+        console.error("ERRO AUTH:", result.error);
         toast.error(result.error);
         return;
       }
 
       if (mode === "up") {
+        console.log("CONTA CRIADA");
         toast.success("Conta criada com sucesso!");
       } else {
-        toast.success("Login realizado!");
         console.log("LOGIN REALIZADO");
+        toast.success("Login realizado!");
       }
     } catch (err) {
       console.error("ERRO GERAL:", err);
       toast.error("Erro inesperado");
     } finally {
+      console.log("FINALIZANDO LOADING");
       setLoading(false);
     }
   };
@@ -86,7 +114,10 @@ function LoginPage() {
                 ? "bg-primary text-primary-foreground"
                 : "bg-card text-muted-foreground"
             }`}
-            onClick={() => setMode("in")}
+            onClick={() => {
+              console.log("MODO LOGIN");
+              setMode("in");
+            }}
           >
             Entrar
           </button>
@@ -97,7 +128,10 @@ function LoginPage() {
                 ? "bg-primary text-primary-foreground"
                 : "bg-card text-muted-foreground"
             }`}
-            onClick={() => setMode("up")}
+            onClick={() => {
+              console.log("MODO CADASTRO");
+              setMode("up");
+            }}
           >
             Criar conta
           </button>
@@ -113,7 +147,13 @@ function LoginPage() {
               ref={emailRef}
               type="email"
               placeholder="Digite seu e-mail"
+              autoComplete="email"
+              onFocus={() => console.log("INPUT EMAIL FOCADO")}
+              onChange={(e) =>
+                console.log("EMAIL DIGITANDO:", e.target.value)
+              }
               className="mt-1 w-full rounded-xl border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none"
+              style={{ pointerEvents: "auto" }}
             />
           </div>
 
@@ -126,7 +166,13 @@ function LoginPage() {
               ref={passwordRef}
               type="password"
               placeholder="Digite sua senha"
+              autoComplete="current-password"
+              onFocus={() => console.log("INPUT SENHA FOCADO")}
+              onChange={(e) =>
+                console.log("SENHA DIGITANDO")
+              }
               className="mt-1 w-full rounded-xl border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none"
+              style={{ pointerEvents: "auto" }}
             />
           </div>
 
