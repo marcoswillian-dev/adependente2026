@@ -1,58 +1,131 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+
 import { supabase } from "@/integrations/supabase/client";
-import type { Session, User } from "@supabase/supabase-js";
+
+import type {
+  Session,
+  User,
+} from "@supabase/supabase-js";
 
 interface AuthCtx {
   user: User | null;
   session: Session | null;
-  isAdmin: boolean;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null }>;
+
+  signUp: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null }>;
+
   signOut: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [session, setSession] =
+    useState<Session | null>(null);
+
+  const [user, setUser] =
+    useState<User | null>(null);
+
+  const [loading, setLoading] =
+    useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (err) {
+        console.error("AUTH ERROR:", err);
+      }
+    }
+
+    load();
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-    });
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+    );
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const signIn = async (
+    email: string,
+    password: string
+  ) => {
+    try {
+      const { error } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    return { error: error?.message ?? null };
+      return {
+        error: error?.message ?? null,
+      };
+    } catch (err) {
+      console.error(err);
+
+      return {
+        error: "Erro ao fazer login",
+      };
+    }
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+  const signUp = async (
+    email: string,
+    password: string
+  ) => {
+    try {
+      const { error } =
+        await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-    return { error: error?.message ?? null };
+      return {
+        error: error?.message ?? null,
+      };
+    } catch (err) {
+      console.error(err);
+
+      return {
+        error: "Erro ao criar conta",
+      };
+    }
   };
 
   const signOut = async () => {
@@ -64,7 +137,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         session,
-        isAdmin,
         loading,
         signIn,
         signUp,
@@ -77,11 +149,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  const v = useContext(Ctx);
+  const context = useContext(Ctx);
 
-  if (!v) {
-    throw new Error("useAuth must be inside AuthProvider");
+  if (!context) {
+    throw new Error(
+      "useAuth must be inside AuthProvider"
+    );
   }
 
-  return v;
+  return context;
 }

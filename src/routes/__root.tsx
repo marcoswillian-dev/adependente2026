@@ -1,4 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -13,6 +13,7 @@ import * as React from "react";
 import appCss from "../styles.css?url";
 import { type MyRouterContext } from "../router";
 
+import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -20,7 +21,9 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h1 className="text-7xl font-bold text-foreground">
+          404
+        </h1>
 
         <h2 className="mt-4 text-xl font-semibold text-foreground">
           Página não encontrada
@@ -94,11 +97,24 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
+      },
       { title: "Meu Time — Gestão do Clube" },
+      {
+        name: "description",
+        content:
+          "Plataforma completa para gerenciar elenco, jogos, gols e rankings do time.",
+      },
     ],
 
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+    ],
   }),
 
   component: RootComponent,
@@ -112,13 +128,15 @@ function RootComponent() {
   return (
     <RootShell>
       <QueryClientProvider client={queryClient}>
-        <SiteHeader />
+        <AuthProvider>
+          <SiteHeader />
 
-        <div className="min-h-screen bg-background">
-          <Outlet />
-        </div>
+          <div className="min-h-screen bg-background">
+            <Outlet />
+          </div>
 
-        <Toaster />
+          <Toaster />
+        </AuthProvider>
       </QueryClientProvider>
     </RootShell>
   );
