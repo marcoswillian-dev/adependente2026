@@ -10,35 +10,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Busca a sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 1. Pega a sessão inicial de forma assíncrona
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Erro ao inicializar auth:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // 2. Escuta mudanças reais (Login/Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // 2. Escuta mudanças na autenticação (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false); // Garante que o loading pare após a mudança
-    });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  // 3. Usamos useCallback para que as funções tenham a mesma referência na memória
-  // Isso evita que componentes como o seu Header ou LoginPage achem que "algo mudou" sem necessidade
-  const signIn = useCallback((e: string, p: string) => 
-    supabase.auth.signInWithPassword({ email: e, password: p }), []);
+  // 3. Funções de Auth com tratamento de erro e garantia de referência (useCallback)
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      return await supabase.auth.signInWithPassword({ email, password });
+    } catch (error: any) {
+      return { error };
+    }
+  }, []);
 
-  const signUp = useCallback((e: string, p: string) => 
-    supabase.auth.signUp({ email: e, password: p }), []);
+  const signUp = useCallback(async (email: string, password: string) => {
+    try {
+      return await supabase.auth.signUp({ email, password });
+    } catch (error: any) {
+      return { error };
+    }
+  }, []);
 
-  const signOut = useCallback(() => 
-    supabase.auth.signOut(), []);
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
 
-  // 4. O useMemo agora fica muito mais limpo e estável
+  // 4. MEMORIZAÇÃO CRÍTICA: Isso impede o loop infinito mostrado na sua imagem
   const value = useMemo(() => ({
     session,
     user,
@@ -53,8 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export const useAuth = () => {
   const context = useContext(Ctx);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   return context;
 };
