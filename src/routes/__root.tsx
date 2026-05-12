@@ -6,7 +6,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import * as React from "react";
-// 1. Verifique se este import do CSS está correto
+// Import do CSS original que você tinha
 import appCss from "../styles.css?url"; 
 import { type MyRouterContext } from "../router";
 
@@ -15,7 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  // 2. O TanStack Router precisa do link do CSS aqui para injetar no <head>
+  // Configuração de head e links que você usava
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -33,22 +33,24 @@ function RootComponent() {
 
   return (
     <React.Fragment>
-      {/* 3. O HeadContent e o Scripts são obrigatórios para o HTML/JS funcionar */}
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <SiteHeader />
-            <div className="min-h-screen bg-background">
-              <Outlet />
-            </div>
-            <Toaster />
-          </AuthProvider>
-        </QueryClientProvider>
-        <Scripts />
-      </body>
+      <html lang="pt-br">
+        <head>
+          <HeadContent />
+        </head>
+        <body>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <SiteHeader />
+              <div className="min-h-screen bg-background">
+                <Outlet />
+              </div>
+              <Toaster />
+            </AuthProvider>
+          </QueryClientProvider>
+          {/* O Scripts deve ficar aqui dentro do body para o JS ativar os botões */}
+          <Scripts />
+        </body>
+      </html>
     </React.Fragment>
   );
 }
