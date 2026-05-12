@@ -1,11 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Trophy, Users, Calendar, BarChart3, LogOut, LogIn, UserCircle } from "lucide-react";
+import { useMemo, useCallback } from "react";
 
-export function SiteHeader() {
-  console.log("HEADER RENDER");
-
+function SiteHeaderComponent() {
   const { user, signOut } = useAuth();
+
+  const handleSignOut = useCallback(() => {
+    signOut();
+  }, [signOut]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -78,10 +81,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           {user ? (
             <button
-              onClick={() => {
-                console.log("SAINDO");
-                signOut();
-              }}
+              onClick={handleSignOut}
               className="rounded-lg border px-3 py-2 text-sm"
             >
               <LogOut className="h-4 w-4 inline mr-1" />
@@ -100,6 +100,8 @@ export function SiteHeader() {
     </header>
   );
 }
+
+export const SiteHeader = SiteHeaderComponent;
 
 function NavLink({
   to,
