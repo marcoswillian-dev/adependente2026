@@ -1,9 +1,11 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { QueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/lib/auth'
 
 export interface MyRouterContext {
   queryClient: QueryClient
+  auth?: ReturnType<typeof useAuth>
 }
 
 export function createRouter() {

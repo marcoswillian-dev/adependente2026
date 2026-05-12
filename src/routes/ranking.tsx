@@ -24,12 +24,16 @@ function Ranking() {
   const [period, setPeriod] = useState<Period>("all");
   const since = periodFilter(period);
 
-  const { data: scorers } = useQuery({
+  const { data: scorers, error: scorersError } = useQuery({
     queryKey: ["ranking-goals", period],
     queryFn: async () => {
       let q = supabase.from("match_goals").select("goals, match:matches!inner(match_date), player:players(id,name,nickname,photo_url)");
       if (since) q = q.gte("match.match_date", since);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) {
+        console.error("Erro ao buscar artilheiros:", error);
+        throw error;
+      }
       const map = new Map<string, any>();
       (data ?? []).forEach((g: any) => {
         if (!g.player) return;
@@ -41,12 +45,16 @@ function Ranking() {
     },
   });
 
-  const { data: participations } = useQuery({
+  const { data: participations, error: participationsError } = useQuery({
     queryKey: ["ranking-part", period],
     queryFn: async () => {
       let q = supabase.from("match_participations").select("match:matches!inner(match_date), player:players(id,name,nickname,photo_url)");
       if (since) q = q.gte("match.match_date", since);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) {
+        console.error("Erro ao buscar participações:", error);
+        throw error;
+      }
       const map = new Map<string, any>();
       (data ?? []).forEach((p: any) => {
         if (!p.player) return;
@@ -57,6 +65,22 @@ function Ranking() {
       return Array.from(map.values()).sort((a, b) => b.total - a.total);
     },
   });
+
+  if (scorersError || participationsError) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-6 text-center">
+          <h2 className="text-xl font-bold text-destructive mb-2">Erro ao carregar rankings</h2>
+          <p className="text-sm text-muted-foreground">
+            {scorersError?.message || participationsError?.message || "Erro desconhecido"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Verifique se você está conectado à internet e se o banco de dados está acessível.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">

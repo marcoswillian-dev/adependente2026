@@ -58,6 +58,15 @@ export function SiteHeader() {
 
           {user && (
             <NavLink
+              to="/admin"
+              icon={<Users className="h-4 w-4" />}
+            >
+              Admin
+            </NavLink>
+          )}
+
+          {user && (
+            <NavLink
               to="/perfil"
               icon={<UserCircle className="h-4 w-4" />}
             >
