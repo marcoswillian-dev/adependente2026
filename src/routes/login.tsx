@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Trophy } from "lucide-react";
 
@@ -39,9 +38,9 @@ function LoginPage() {
       console.log("RESULTADO:", result);
 
       if (result.error) {
-        setLoading(false);
         console.error("ERRO:", result.error);
-        return toast.error(result.error);
+        toast.error(result.error);
+        return;
       }
 
       if (mode === "up") {
@@ -131,17 +130,17 @@ function LoginPage() {
             />
           </div>
 
-          <Button
-            className="w-full"
+          <button
             onClick={handle}
             disabled={loading}
+            className="w-full rounded-xl bg-blue-500 py-2 text-white font-semibold"
           >
             {loading
               ? "Aguarde..."
               : mode === "in"
               ? "Entrar"
               : "Criar conta"}
-          </Button>
+          </button>
         </div>
       </div>
     </div>
