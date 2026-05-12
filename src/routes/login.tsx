@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Trophy, Loader2 } from "lucide-react";
@@ -12,26 +12,22 @@ function LoginPage() {
   const { signIn, signUp } = useAuth();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  
+  // Estados locais para garantir re-renderização imediata
   const [mode, setMode] = useState<"in" | "up">("in");
   const [localLoading, setLocalLoading] = useState(false);
 
-  // LOG DE DEPURAÇÃO: Verifica se as chaves estão sendo lidas pelo Vite
-  useEffect(() => {
-    console.log("Supabase URL configurada:", !!import.meta.env.VITE_SUPABASE_URL);
-    console.log("Supabase Key configurada:", !!import.meta.env.VITE_SUPABASE_ANON_KEY);
-  }, []);
-
-  const handle = async () => {
-    const email = emailRef.current?.value.trim() ?? "";
-    const password = passwordRef.current?.value ?? "";
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault(); // Impede o recarregamento da página
+    
+    const email = emailRef.current?.value.trim() || "";
+    const password = passwordRef.current?.value || "";
 
     if (!email || !password) {
-      return toast.error("Preencha email e senha");
+      return toast.error("Preencha todos os campos");
     }
 
-    // Ativamos o loading local para travar o botão apenas durante a requisição
     setLocalLoading(true);
-    console.log(`Iniciando tentativa de ${mode === "in" ? "Login" : "Cadastro"}...`);
 
     try {
       const result = mode === "in" 
@@ -39,107 +35,94 @@ function LoginPage() {
         : await signUp(email, password);
 
       if (result?.error) {
-        console.error("Erro retornado pelo Supabase:", result.error);
-        const message = typeof result.error === 'string' ? result.error : result.error.message;
-        
-        // Mapeamento de erros comuns para mensagens amigáveis
-        if (message.includes("Invalid login credentials")) {
-          toast.error("E-mail ou senha incorretos");
-        } else {
-          toast.error(message);
-        }
-        
+        const msg = typeof result.error === 'string' ? result.error : result.error.message;
+        toast.error(msg === "Invalid login credentials" ? "E-mail ou senha incorretos" : msg);
         setLocalLoading(false);
       } else {
-        console.log("Sucesso na autenticação!");
-        toast.success(mode === "in" ? "Login realizado!" : "Conta criada! Verifique seu e-mail.");
-        
+        toast.success(mode === "in" ? "Sucesso!" : "Verifique seu e-mail");
         if (mode === "in") {
-          // Usamos um redirecionamento forçado para garantir a limpeza do estado
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 800);
+          setTimeout(() => { window.location.href = "/"; }, 500);
         } else {
           setLocalLoading(false);
           setMode("in");
         }
       }
     } catch (err) {
-      console.error("Erro fatal no componente de login:", err);
-      toast.error("Erro de conexão. Verifique seu terminal.");
+      toast.error("Erro de conexão");
       setLocalLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12" style={{ background: "var(--gradient-hero, linear-gradient(to bottom, #1a1a1a, #000))" }}>
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-xl">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-500/20">
-            <Trophy className="h-7 w-7 text-white" />
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-4">
+      <div className="w-full max-w-md space-y-8 rounded-3xl border border-white/10 bg-[#141414] p-8 shadow-2xl">
+        
+        {/* Cabeçalho */}
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-500/20">
+            <Trophy className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            {mode === "in" ? "BOAS-VINDAS" : "NOVA CONTA"}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "in" ? "Entre com suas credenciais" : "Preencha os dados abaixo"}
-          </p>
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">
+            {mode === "in" ? "Entrar" : "Criar Conta"}
+          </h2>
         </div>
 
-        <div className="mb-6 flex p-1 rounded-xl border border-border bg-muted/50">
-          <button 
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === "in" ? "bg-white text-black shadow-sm" : "text-muted-foreground hover:text-foreground"}`} 
+        {/* Alternador de Modo (Tabs) */}
+        <div className="flex gap-2 rounded-xl bg-black/50 p-1.5 border border-white/5">
+          <button
+            type="button"
             onClick={() => setMode("in")}
-            disabled={localLoading}
+            className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-all ${mode === "in" ? "bg-blue-600 text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
           >
-            Entrar
+            LOGIN
           </button>
-          <button 
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${mode === "up" ? "bg-white text-black shadow-sm" : "text-muted-foreground hover:text-foreground"}`} 
+          <button
+            type="button"
             onClick={() => setMode("up")}
-            disabled={localLoading}
+            className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-all ${mode === "up" ? "bg-blue-600 text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
           >
-            Cadastro
+            CADASTRO
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Formulário */}
+        <form onSubmit={handleAuth} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">E-mail</label>
-            <input 
-              ref={emailRef} 
-              type="email" 
-              placeholder="seu@email.com" 
-              className="w-full rounded-xl border border-input p-3 bg-background outline-none focus:ring-2 focus:ring-blue-500/50 transition-all" 
-              disabled={localLoading} 
+            <label className="text-xs font-bold uppercase text-gray-500 ml-1">E-mail</label>
+            <input
+              ref={emailRef}
+              type="email"
+              required
+              className="w-full rounded-xl border border-white/10 bg-black/30 p-4 text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              placeholder="seu@email.com"
             />
           </div>
+
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Senha</label>
-            <input 
-              ref={passwordRef} 
-              type="password" 
-              placeholder="••••••••" 
-              className="w-full rounded-xl border border-input p-3 bg-background outline-none focus:ring-2 focus:ring-blue-500/50 transition-all" 
-              disabled={localLoading} 
+            <label className="text-xs font-bold uppercase text-gray-500 ml-1">Senha</label>
+            <input
+              ref={passwordRef}
+              type="password"
+              required
+              className="w-full rounded-xl border border-white/10 bg-black/30 p-4 text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              placeholder="••••••••"
             />
           </div>
-          
-          <button 
-            onClick={handle} 
-            disabled={localLoading} 
-            className="group relative w-full overflow-hidden rounded-xl bg-blue-600 py-3.5 text-white font-bold hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+
+          <button
+            type="submit"
+            disabled={localLoading}
+            className="w-full rounded-xl bg-blue-600 py-4 text-sm font-black text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg shadow-blue-600/20"
           >
             {localLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Autenticando...
+                <Loader2 className="h-5 w-5 animate-spin" /> PROCESSANDO...
               </span>
             ) : (
-              <span>{mode === "in" ? "Acessar Sistema" : "Criar Minha Conta"}</span>
+              mode === "in" ? "ACESSAR AGORA" : "FINALIZAR CADASTRO"
             )}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
