@@ -48,7 +48,7 @@ function LoginPage() {
         toast.success("Conta criada com sucesso!");
       } else {
         toast.success("Login realizado!");
-        window.location.href = "/";
+        console.log("LOGIN REALIZADO");
       }
     } catch (err) {
       console.error("ERRO GERAL:", err);
