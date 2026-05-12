@@ -13,6 +13,9 @@ import * as React from "react";
 import appCss from "../styles.css?url";
 import { type MyRouterContext } from "../router";
 
+import { Toaster } from "@/components/ui/sonner";
+import { SiteHeader } from "@/components/SiteHeader";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -93,11 +96,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Meu Time — Gestão do Clube" },
-      {
-        name: "description",
-        content:
-          "Plataforma completa para gerenciar elenco, jogos, gols e rankings do time.",
-      },
     ],
 
     links: [{ rel: "stylesheet", href: appCss }],
@@ -114,9 +112,13 @@ function RootComponent() {
   return (
     <RootShell>
       <QueryClientProvider client={queryClient}>
+        <SiteHeader />
+
         <div className="min-h-screen bg-background">
           <Outlet />
         </div>
+
+        <Toaster />
       </QueryClientProvider>
     </RootShell>
   );
