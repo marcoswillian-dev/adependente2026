@@ -1,8 +1,18 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-const Ctx = createContext<any>(null);
+// Definimos uma interface clara para evitar erros de tipagem
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string) => Promise<any>;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -10,53 +20,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Pega a sessão inicial de forma assíncrona
-    const initAuth = async () => {
+    let mounted = true;
+
+    async function getInitialSession() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+
+        if (mounted) {
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
+        }
       } catch (error) {
-        console.error("Erro ao inicializar auth:", error);
+        console.error("Erro ao recuperar sessão inicial:", error);
       } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    getInitialSession();
+
+    // Escuta mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      console.log(`Auth Event: ${event}`); // Log crucial para debug no VS Code
+      
+      if (mounted) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         setLoading(false);
       }
-    };
-
-    initAuth();
-
-    // 2. Escuta mudanças reais (Login/Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // 3. Funções de Auth com tratamento de erro e garantia de referência (useCallback)
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      return await supabase.auth.signInWithPassword({ email, password });
-    } catch (error: any) {
-      return { error };
-    }
-  }, []);
+  // Funções simplificadas: O tratamento de erro robusto já é feito no componente de login
+  const signIn = async (email: string, password: string) => {
+    return supabase.auth.signInWithPassword({ email, password });
+  };
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    try {
-      return await supabase.auth.signUp({ email, password });
-    } catch (error: any) {
-      return { error };
-    }
-  }, []);
+  const signUp = async (email: string, password: string) => {
+    return supabase.auth.signUp({ email, password });
+  };
 
-  const signOut = useCallback(async () => {
+  const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
-  }, []);
+    setLoading(false);
+  };
 
-  // 4. MEMORIZAÇÃO CRÍTICA: Isso impede o loop infinito mostrado na sua imagem
+  // O useMemo aqui é o que impede o TanStack Router de re-renderizar a árvore inteira sem necessidade
   const value = useMemo(() => ({
     session,
     user,
@@ -64,13 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
-  }), [session, user, loading, signIn, signUp, signOut]);
+  }), [session, user, loading]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => {
-  const context = useContext(Ctx);
-  if (!context) throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  }
   return context;
 };
