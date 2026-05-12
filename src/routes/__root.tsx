@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -7,22 +7,26 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import * as React from 'react';
+
+import * as React from "react";
+
 import appCss from "../styles.css?url";
 import { type MyRouterContext } from "../router";
-import { AuthProvider } from "@/lib/auth";
-import { Toaster } from "@/components/ui/sonner";
-import { SiteHeader } from "@/components/SiteHeader";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
+
+        <h2 className="mt-4 text-xl font-semibold text-foreground">
+          Página não encontrada
+        </h2>
+
         <p className="mt-2 text-sm text-muted-foreground">
           A página que você está procurando não existe ou foi movida.
         </p>
+
         <div className="mt-6">
           <Link
             to="/"
@@ -36,7 +40,13 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
   const router = useRouter();
 
   React.useEffect(() => {
@@ -85,9 +95,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       { title: "Meu Time — Gestão do Clube" },
       {
         name: "description",
-        content: "Plataforma completa para gerenciar elenco, jogos, gols e rankings do time.",
+        content:
+          "Plataforma completa para gerenciar elenco, jogos, gols e rankings do time.",
       },
     ],
+
     links: [{ rel: "stylesheet", href: appCss }],
   }),
 
@@ -102,21 +114,19 @@ function RootComponent() {
   return (
     <RootShell>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <SiteHeader />
-
-          <div className="min-h-screen bg-background">
-            <Outlet />
-          </div>
-
-          <Toaster />
-        </AuthProvider>
+        <div className="min-h-screen bg-background">
+          <Outlet />
+        </div>
       </QueryClientProvider>
     </RootShell>
   );
 }
 
-function RootShell({ children }: { children: React.ReactNode }) {
+function RootShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="pt-br">
       <head>
