@@ -20,7 +20,6 @@ export function createRouter() {
   return router
 }
 
-// ✅ Necessário para o TanStack Start
 export function getRouter() {
   return createRouter()
 }
