@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && mv dist/client/* dist/ || true",
+    "build": "vite build && (mv dist/client/* dist/ || true) && (rmdir dist/client || true)",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
