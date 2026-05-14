@@ -1,13 +1,9 @@
 {
   "version": 2,
-  "public": true,
-  "buildCommand": "npm run build",
+  "cleanUrls": true,
+  "framework": "vite",
   "outputDirectory": "dist/client",
   "rewrites": [
-    {
-      "source": "/assets/(.*)",
-      "destination": "/assets/$1"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
