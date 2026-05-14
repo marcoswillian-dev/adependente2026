@@ -5,12 +5,13 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-
 import * as React from "react";
 
+// Importação do CSS
 import appCss from "../styles.css?url";
 import { type MyRouterContext } from "../router";
 
+// Provedores e Componentes
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -23,8 +24,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         name: "viewport",
         content: "width=device-width, initial-scale=1",
       },
+      {
+        title: "Arena Resenha",
+      },
     ],
-
     links: [
       {
         rel: "stylesheet",
@@ -32,32 +35,36 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
   }),
-
   component: RootComponent,
 });
 
 function RootComponent() {
+  // Extrai o queryClient do contexto definido no seu router.ts
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <>
-      <HeadContent />
+    <html lang="pt-br">
+      <head>
+        {/* Renderiza as metas e links definidos no head: () acima */}
+        <HeadContent />
+      </head>
+      <body>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <div className="min-h-screen flex flex-col bg-background">
+              <SiteHeader />
+              <main className="flex-1">
+                {/* O Outlet renderiza o conteúdo das rotas filhas */}
+                <Outlet />
+              </main>
+              <Toaster />
+            </div>
+          </AuthProvider>
+        </QueryClientProvider>
 
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-
-          <SiteHeader />
-
-          <div className="min-h-screen bg-background">
-            <Outlet />
-          </div>
-
-          <Toaster />
-
-        </AuthProvider>
-      </QueryClientProvider>
-
-      <Scripts />
-    </>
+        {/* CRUCIAL: Injeta os scripts do TanStack para a hidratação (evita tela preta) */}
+        <Scripts />
+      </body>
+    </html>
   );
 }
