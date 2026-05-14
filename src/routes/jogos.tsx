@@ -186,18 +186,6 @@ function Matches() {
 
         </div>
 
-        <Link to="/artilharia">
-
-          <Button className="gap-2">
-
-            <Trophy className="h-4 w-4" />
-
-            Artilharia
-
-          </Button>
-
-        </Link>
-
       </div>
 
       {user && !myPlayer && (
