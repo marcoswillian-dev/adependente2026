@@ -2,16 +2,12 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   tanstackStart: {
-    // Desativar SSR é o que vai matar a tela preta de vez na Vercel
-    ssr: false,
+    ssr: false, // Isso é o que evita a tela preta de "MIME type"
   },
   vite: {
     build: {
-      chunkSizeWarningLimit: 1000,
-      // Forçamos a saída para 'dist', que é o padrão que a Vercel espera
-      outDir: "dist",
+      outDir: "dist", // Casando com o seu comando 'mv' do package.json
       emptyOutDir: true,
     },
-    base: "/",
   },
 });
