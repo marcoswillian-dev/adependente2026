@@ -19,10 +19,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
+      },
     ],
 
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+    ],
   }),
 
   component: RootComponent,
@@ -37,6 +45,7 @@ function RootComponent() {
 
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+
           <SiteHeader />
 
           <div className="min-h-screen bg-background">
@@ -44,6 +53,7 @@ function RootComponent() {
           </div>
 
           <Toaster />
+
         </AuthProvider>
       </QueryClientProvider>
 
@@ -51,4 +61,3 @@ function RootComponent() {
     </>
   );
 }
-

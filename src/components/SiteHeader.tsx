@@ -1,7 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
-import { Trophy, Users, Calendar, BarChart3, LogOut, LogIn, UserCircle } from "lucide-react";
-import { useMemo, useCallback } from "react";
+import {
+  Trophy,
+  Users,
+  Calendar,
+  BarChart3,
+  LogOut,
+  LogIn,
+  UserCircle,
+  Goal,
+} from "lucide-react";
+
+import { useCallback } from "react";
 
 function SiteHeaderComponent() {
   const { user, signOut } = useAuth();
@@ -31,6 +41,7 @@ function SiteHeaderComponent() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
+
           <NavLink
             to="/"
             icon={<Trophy className="h-4 w-4" />}
@@ -59,6 +70,8 @@ function SiteHeaderComponent() {
             Ranking
           </NavLink>
 
+          
+
           {user && (
             <NavLink
               to="/admin"
@@ -76,6 +89,7 @@ function SiteHeaderComponent() {
               Perfil
             </NavLink>
           )}
+
         </nav>
 
         <div className="flex items-center gap-2">
@@ -84,18 +98,19 @@ function SiteHeaderComponent() {
               onClick={handleSignOut}
               className="rounded-lg border px-3 py-2 text-sm"
             >
-              <LogOut className="h-4 w-4 inline mr-1" />
+              <LogOut className="mr-1 inline h-4 w-4" />
               Sair
             </button>
           ) : (
             <Link to="/login">
               <button className="rounded-lg border px-3 py-2 text-sm">
-                <LogIn className="h-4 w-4 inline mr-1" />
+                <LogIn className="mr-1 inline h-4 w-4" />
                 Entrar
               </button>
             </Link>
           )}
         </div>
+
       </div>
     </header>
   );

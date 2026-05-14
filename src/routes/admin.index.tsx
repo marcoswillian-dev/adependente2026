@@ -51,7 +51,7 @@ function PlayersAdmin() {
 
   const [logoUrl, setLogoUrl] = useState("");
 
-  const [adminUserId, setAdminUserId] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -152,15 +152,32 @@ function PlayersAdmin() {
   }
 
   async function makeAdmin() {
-    if (!adminUserId.trim()) {
-      return toast.error("Digite o User ID");
+    if (!adminEmail.trim()) {
+      return toast.error("Digite o email");
+    }
+
+    const { data: player, error: playerError } =
+      await supabase
+        .from("players")
+        .select("*")
+        .eq("email", adminEmail)
+        .maybeSingle();
+
+    if (playerError) {
+      return toast.error(playerError.message);
+    }
+
+    if (!player?.user_id) {
+      return toast.error(
+        "Usuário precisa fazer login primeiro"
+      );
     }
 
     const { error } = await supabase
       .from("user_roles")
       .insert([
         {
-          user_id: adminUserId,
+          user_id: player.user_id,
           role: "admin",
         },
       ]);
@@ -169,7 +186,7 @@ function PlayersAdmin() {
       toast.error(error.message);
     } else {
       toast.success("Novo admin criado!");
-      setAdminUserId("");
+      setAdminEmail("");
     }
   }
 
@@ -291,7 +308,6 @@ function PlayersAdmin() {
               className="w-full h-12 font-black uppercase"
             >
               <Upload className="mr-2 h-4 w-4" />
-
               Salvar Alterações
             </Button>
           </div>
@@ -303,13 +319,13 @@ function PlayersAdmin() {
             </h2>
 
             <div className="space-y-2">
-              <Label>User ID</Label>
+              <Label>Email do Usuário</Label>
 
               <Input
-                placeholder="Cole o user_id"
-                value={adminUserId}
+                placeholder="usuario@email.com"
+                value={adminEmail}
                 onChange={(e) =>
-                  setAdminUserId(e.target.value)
+                  setAdminEmail(e.target.value)
                 }
               />
             </div>
@@ -319,7 +335,6 @@ function PlayersAdmin() {
               className="w-full h-12 font-black uppercase"
             >
               <Shield className="mr-2 h-4 w-4" />
-
               Tornar Admin
             </Button>
           </div>
@@ -397,6 +412,10 @@ function PlayersAdmin() {
                     {p.position || "Sem posição"}
                   </p>
 
+                  <p className="text-xs text-zinc-500 mt-1">
+                    {p.email || "Sem email"}
+                  </p>
+
                 </div>
 
                 <div className="flex gap-2">
@@ -451,6 +470,7 @@ function PlayerForm({
     jersey_number:
       player?.jersey_number?.toString() ?? "",
     photo_url: player?.photo_url ?? "",
+    email: player?.email ?? "",
   });
 
   async function uploadPhoto(
@@ -499,6 +519,7 @@ function PlayerForm({
         ? parseInt(form.jersey_number)
         : null,
       photo_url: form.photo_url || null,
+      email: form.email || null,
       active: true,
     };
 
@@ -531,6 +552,21 @@ function PlayerForm({
             setForm({
               ...form,
               name: e.target.value,
+            })
+          }
+        />
+      </div>
+
+      <div>
+        <Label>Email</Label>
+
+        <Input
+          type="email"
+          value={form.email}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              email: e.target.value,
             })
           }
         />

@@ -71,7 +71,13 @@ function MatchesAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("matches")
-        .select("*")
+        .select(`
+          *,
+          match_goals(
+            goals,
+            player:players(name,nickname)
+          )
+        `)
         .order("match_date", { ascending: false });
 
       if (error) throw error;
@@ -92,6 +98,7 @@ function MatchesAdmin() {
       toast.error(error.message);
     } else {
       toast.success("Jogo removido");
+
       qc.invalidateQueries({
         queryKey: ["admin-matches"],
       });
@@ -155,7 +162,7 @@ function MatchesAdmin() {
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle>
                 {editId ? "Editar jogo" : "Novo jogo"}
@@ -181,45 +188,59 @@ function MatchesAdmin() {
         {matches?.map((m: any) => (
           <div
             key={m.id}
-            className="flex items-center justify-between rounded-2xl border bg-card p-5"
+            className="rounded-2xl border bg-card p-5"
           >
-            <div>
-              <div className="text-sm text-muted-foreground">
-                {format(
-                  new Date(m.match_date + "T12:00:00"),
-                  "dd/MM/yyyy"
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">
+                  {format(
+                    new Date(m.match_date + "T12:00:00"),
+                    "dd/MM/yyyy"
+                  )}
+                </div>
+
+                <div className="text-xl font-black uppercase italic">
+                  {m.opponent}
+                </div>
+
+                <div className="mt-1 text-sm font-bold">
+                  {m.our_score} x {m.opponent_score}
+                </div>
+
+                {m.match_goals?.length > 0 && (
+                  <div className="mt-3 text-sm text-muted-foreground">
+                    ⚽{" "}
+                    {m.match_goals
+                      .map(
+                        (g: any) =>
+                          `${g.player?.nickname || g.player?.name} (${g.goals})`
+                      )
+                      .join(", ")}
+                  </div>
                 )}
               </div>
 
-              <div className="text-xl font-black uppercase italic">
-                {m.opponent}
+              <div className="flex gap-2">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditId(m.id);
+                    setOpen(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => remove(m.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-
-              <div className="mt-1 text-sm">
-                {m.our_score} x {m.opponent_score}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => {
-                  setEditId(m.id);
-                  setOpen(true);
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-destructive"
-                onClick={() => remove(m.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         ))}
@@ -235,6 +256,7 @@ function MatchForm({
   matchId: string | null;
   onDone: () => void;
 }) {
+
   const [form, setForm] = useState({
     match_date: new Date().toISOString().slice(0, 10),
     opponent: "",
@@ -243,6 +265,113 @@ function MatchForm({
     location: "",
     notes: "",
   });
+
+  const [participated, setParticipated] = useState<Set<string>>(new Set());
+
+  const [goalsMap, setGoalsMap] = useState<Map<string, number>>(new Map());
+
+  const { data: players } = useQuery({
+    queryKey: ["players-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("players")
+        .select("id,name,nickname")
+        .eq("active", true)
+        .order("name");
+
+      return data || [];
+    },
+  });
+
+  const { data: existing } = useQuery({
+    queryKey: ["match-edit", matchId],
+    enabled: !!matchId,
+    queryFn: async () => {
+      const [{ data: m }, { data: parts }, { data: goals }] =
+        await Promise.all([
+          supabase
+            .from("matches")
+            .select("*")
+            .eq("id", matchId!)
+            .single(),
+
+          supabase
+            .from("match_participations")
+            .select("player_id")
+            .eq("match_id", matchId!),
+
+          supabase
+            .from("match_goals")
+            .select("player_id, goals")
+            .eq("match_id", matchId!),
+        ]);
+
+      return {
+        m,
+        parts: parts || [],
+        goals: goals || [],
+      };
+    },
+  });
+
+  useEffect(() => {
+    if (existing?.m) {
+      setForm({
+        match_date: existing.m.match_date,
+        opponent: existing.m.opponent,
+        our_score: String(existing.m.our_score),
+        opponent_score: String(existing.m.opponent_score),
+        location: existing.m.location || "",
+        notes: existing.m.notes || "",
+      });
+
+      setParticipated(
+        new Set(
+          existing.parts.map((p: any) => p.player_id)
+        )
+      );
+
+      setGoalsMap(
+        new Map(
+          existing.goals.map((g: any) => [
+            g.player_id,
+            g.goals,
+          ])
+        )
+      );
+    }
+  }, [existing]);
+
+  const togglePlayer = (id: string) => {
+    const updated = new Set(participated);
+
+    if (updated.has(id)) {
+      updated.delete(id);
+    } else {
+      updated.add(id);
+    }
+
+    setParticipated(updated);
+  };
+
+  const setGoals = (
+    playerId: string,
+    goals: number
+  ) => {
+    const updated = new Map(goalsMap);
+
+    if (goals <= 0) {
+      updated.delete(playerId);
+    } else {
+      updated.set(playerId, goals);
+    }
+
+    setGoalsMap(updated);
+
+    if (goals > 0 && !participated.has(playerId)) {
+      togglePlayer(playerId);
+    }
+  };
 
   const save = async () => {
     if (!form.opponent.trim()) {
@@ -258,6 +387,8 @@ function MatchForm({
       notes: form.notes || null,
     };
 
+    let currentMatchId = matchId;
+
     if (matchId) {
       const { error } = await supabase
         .from("matches")
@@ -269,26 +400,68 @@ function MatchForm({
         return;
       }
 
-      toast.success("Jogo atualizado");
-    } else {
-      const { error } = await supabase
-        .from("matches")
-        .insert([payload]);
+      await supabase
+        .from("match_participations")
+        .delete()
+        .eq("match_id", matchId);
 
-      if (error) {
-        toast.error(error.message);
+      await supabase
+        .from("match_goals")
+        .delete()
+        .eq("match_id", matchId);
+
+    } else {
+      const { data, error } = await supabase
+        .from("matches")
+        .insert([payload])
+        .select()
+        .single();
+
+      if (error || !data) {
+        toast.error(error?.message || "Erro");
         return;
       }
 
-      toast.success("Jogo criado");
+      currentMatchId = data.id;
     }
+
+    if (participated.size > 0) {
+      const rows = Array.from(participated).map(
+        (player_id) => ({
+          match_id: currentMatchId!,
+          player_id,
+        })
+      );
+
+      await supabase
+        .from("match_participations")
+        .insert(rows);
+    }
+
+    if (goalsMap.size > 0) {
+      const rows = Array.from(goalsMap.entries()).map(
+        ([player_id, goals]) => ({
+          match_id: currentMatchId!,
+          player_id,
+          goals,
+        })
+      );
+
+      await supabase
+        .from("match_goals")
+        .insert(rows);
+    }
+
+    toast.success("Jogo salvo com sucesso!");
 
     onDone();
   };
 
   return (
-    <div className="space-y-4 pt-4">
+    <div className="space-y-6 pt-4">
+
       <div className="grid grid-cols-2 gap-4">
+
         <div>
           <Label>Data</Label>
 
@@ -347,6 +520,7 @@ function MatchForm({
             }
           />
         </div>
+
       </div>
 
       <div>
@@ -377,9 +551,60 @@ function MatchForm({
         />
       </div>
 
+      <div className="rounded-2xl border p-4">
+        <h3 className="mb-4 text-lg font-black uppercase text-primary">
+          Participantes e gols
+        </h3>
+
+        <div className="space-y-3">
+
+          {players?.map((player: any) => (
+            <div
+              key={player.id}
+              className="flex items-center gap-3 rounded-xl border p-3"
+            >
+
+              <Checkbox
+                checked={participated.has(player.id)}
+                onCheckedChange={() =>
+                  togglePlayer(player.id)
+                }
+              />
+
+              <div className="flex-1">
+                <div className="font-bold uppercase">
+                  {player.nickname || player.name}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm">⚽</span>
+
+                <Input
+                  type="number"
+                  min="0"
+                  className="w-20"
+                  placeholder="0"
+                  value={goalsMap.get(player.id) || ""}
+                  onChange={(e) =>
+                    setGoals(
+                      player.id,
+                      Number(e.target.value)
+                    )
+                  }
+                />
+              </div>
+
+            </div>
+          ))}
+
+        </div>
+      </div>
+
       <Button className="w-full" onClick={save}>
         Salvar jogo
       </Button>
+
     </div>
   );
 }
