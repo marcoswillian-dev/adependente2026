@@ -1,11 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import {
   Dialog,
   DialogContent,
@@ -13,160 +15,593 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 
-// Definição da rota limpa para o gerador reconhecer
+import { toast } from "sonner";
+
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Loader2,
+  Shield,
+  Upload,
+  Trophy,
+} from "lucide-react";
+
 export const Route = createFileRoute("/admin/")({
   component: PlayersAdmin,
 });
 
 function PlayersAdmin() {
   const { user, loading } = useAuth();
+
   const navigate = useNavigate();
+
+  const qc = useQueryClient();
+
+  const [open, setOpen] = useState(false);
+
+  const [editing, setEditing] = useState<any>(null);
+
+  const [teamId, setTeamId] = useState<string | null>(null);
+
+  const [teamName, setTeamName] = useState("");
+
+  const [description, setDescription] = useState("");
+
+  const [logoUrl, setLogoUrl] = useState("");
+
+  const [adminUserId, setAdminUserId] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate({ to: "/login", search: { redirect: "/admin" } });
+      navigate({
+        to: "/login",
+        search: { redirect: "/admin" },
+      });
     }
   }, [user, loading, navigate]);
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
-  if (!user) return null;
+  useEffect(() => {
+    loadTeam();
+  }, []);
 
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+  async function loadTeam() {
+    const { data } = await supabase
+      .from("team_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      setTeamId(data.id);
+
+      setTeamName(data.name || "");
+
+      setDescription(data.description || "");
+
+      setLogoUrl(data.logo_url || "");
+    }
+  }
+
+  async function saveTeam() {
+    if (!teamId) {
+      const { error } = await supabase
+        .from("team_settings")
+        .insert([
+          {
+            name: teamName,
+            description,
+            logo_url: logoUrl,
+          },
+        ]);
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Time criado!");
+        loadTeam();
+      }
+
+      return;
+    }
+
+    const { error } = await supabase
+      .from("team_settings")
+      .update({
+        name: teamName,
+        description,
+        logo_url: logoUrl,
+      })
+      .eq("id", teamId);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Time atualizado!");
+    }
+  }
+
+  async function uploadBanner(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    const fileName = `${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage
+      .from("team")
+      .upload(fileName, file);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage
+      .from("team")
+      .getPublicUrl(fileName);
+
+    setLogoUrl(publicUrl);
+
+    toast.success("Banner enviado!");
+  }
+
+  async function makeAdmin() {
+    if (!adminUserId.trim()) {
+      return toast.error("Digite o User ID");
+    }
+
+    const { error } = await supabase
+      .from("user_roles")
+      .insert([
+        {
+          user_id: adminUserId,
+          role: "admin",
+        },
+      ]);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Novo admin criado!");
+      setAdminUserId("");
+    }
+  }
 
   const { data: players, isLoading } = useQuery({
     queryKey: ["admin-players"],
+
     queryFn: async () => {
       const { data, error } = await supabase
         .from("players")
         .select("*")
         .order("name", { ascending: true });
+
       if (error) throw error;
+
       return (data || []) as any[];
     },
   });
 
   const remove = async (id: string) => {
-    if (!confirm("Excluir este atleta?")) return;
-    const { error } = await supabase.from("players").delete().eq("id", id);
+    if (!confirm("Excluir atleta?")) return;
+
+    const { error } = await supabase
+      .from("players")
+      .delete()
+      .eq("id", id);
+
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Removido");
-      qc.invalidateQueries({ queryKey: ["admin-players"] });
+      toast.success("Atleta removido");
+
+      qc.invalidateQueries({
+        queryKey: ["admin-players"],
+      });
     }
   };
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (loading || isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex justify-between items-center bg-card p-6 rounded-2xl border shadow-sm">
-        <h1 className="text-2xl font-black italic uppercase text-primary">Gestão de Atletas</h1>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
-          <DialogTrigger asChild>
-            <Button className="font-bold uppercase italic"><Plus className="mr-2 h-4 w-4" /> Novo Atleta</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-black uppercase italic">Cadastro de Atleta</DialogTitle>
-            </DialogHeader>
-            <PlayerForm 
-              player={editing} 
-              onDone={() => { 
-                setOpen(false); 
-                qc.invalidateQueries({ queryKey: ["admin-players"] }); 
-              }} 
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="min-h-screen bg-black text-white p-6">
+      <div className="mx-auto max-w-7xl space-y-8">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {players?.map((p) => (
-          <div key={p.id} className="p-5 border rounded-2xl flex items-center justify-between bg-card hover:border-primary/50 transition-colors shadow-sm">
-            <div className="flex flex-col">
-              <span className="font-black uppercase italic text-lg">{p.nickname || p.name}</span>
-              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-                {p.position || "Sem posição"} {p.jersey_number ? `• Nº ${p.jersey_number}` : ""}
-              </span>
-            </div>
-            <div className="flex gap-1">
-              <Button size="icon" variant="ghost" className="rounded-full" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-              <Button size="icon" variant="ghost" className="rounded-full text-destructive" onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></Button>
-            </div>
+        <div className="rounded-3xl border border-white/10 bg-zinc-900 p-8">
+
+          <h1 className="text-4xl font-black uppercase">
+            Painel Admin
+          </h1>
+
+          <p className="text-zinc-400 mt-2">
+            Gerencie o time e jogadores
+          </p>
+
+          <div className="mt-6">
+            <Link to="/admin/jogos">
+              <Button className="gap-2">
+                <Trophy className="h-4 w-4" />
+                Gerenciar Jogos
+              </Button>
+            </Link>
           </div>
-        ))}
+
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+
+          <div className="rounded-3xl border border-white/10 bg-zinc-900 p-6 space-y-5">
+
+            <h2 className="text-2xl font-black uppercase">
+              Informações do Time
+            </h2>
+
+            <div className="space-y-2">
+              <Label>Nome do Time</Label>
+
+              <Input
+                value={teamName}
+                onChange={(e) =>
+                  setTeamName(e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+
+              <Input
+                value={description}
+                onChange={(e) =>
+                  setDescription(e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Banner / Logo</Label>
+
+              <Input
+                type="file"
+                onChange={uploadBanner}
+              />
+
+              {logoUrl && (
+                <img
+                  src={logoUrl}
+                  className="h-56 w-full rounded-2xl object-cover"
+                />
+              )}
+            </div>
+
+            <Button
+              onClick={saveTeam}
+              className="w-full h-12 font-black uppercase"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+
+              Salvar Alterações
+            </Button>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-zinc-900 p-6 space-y-5">
+
+            <h2 className="text-2xl font-black uppercase">
+              Administradores
+            </h2>
+
+            <div className="space-y-2">
+              <Label>User ID</Label>
+
+              <Input
+                placeholder="Cole o user_id"
+                value={adminUserId}
+                onChange={(e) =>
+                  setAdminUserId(e.target.value)
+                }
+              />
+            </div>
+
+            <Button
+              onClick={makeAdmin}
+              className="w-full h-12 font-black uppercase"
+            >
+              <Shield className="mr-2 h-4 w-4" />
+
+              Tornar Admin
+            </Button>
+          </div>
+
+        </div>
+
+        <div className="flex justify-between items-center rounded-3xl border border-white/10 bg-zinc-900 p-6">
+
+          <h2 className="text-2xl font-black uppercase">
+            Gestão de Atletas
+          </h2>
+
+          <Dialog
+            open={open}
+            onOpenChange={(o) => {
+              setOpen(o);
+
+              if (!o) setEditing(null);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Atleta
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  Cadastro de Atleta
+                </DialogTitle>
+              </DialogHeader>
+
+              <PlayerForm
+                player={editing}
+                onDone={() => {
+                  setOpen(false);
+
+                  qc.invalidateQueries({
+                    queryKey: ["admin-players"],
+                  });
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+          {players?.map((p) => (
+
+            <div
+              key={p.id}
+              className="rounded-3xl border border-white/10 bg-zinc-900 p-5"
+            >
+
+              {p.photo_url && (
+                <img
+                  src={p.photo_url}
+                  className="mb-4 h-48 w-full rounded-2xl object-cover"
+                />
+              )}
+
+              <div className="flex items-center justify-between">
+
+                <div>
+
+                  <h3 className="text-xl font-black uppercase">
+                    {p.nickname || p.name}
+                  </h3>
+
+                  <p className="text-sm text-zinc-400">
+                    {p.position || "Sem posição"}
+                  </p>
+
+                </div>
+
+                <div className="flex gap-2">
+
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditing(p);
+
+                      setOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => remove(p.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          ))}
+
+        </div>
+
       </div>
     </div>
   );
 }
 
-function PlayerForm({ player, onDone }: { player: any; onDone: () => void }) {
+function PlayerForm({
+  player,
+  onDone,
+}: {
+  player: any;
+  onDone: () => void;
+}) {
+
   const [form, setForm] = useState({
     name: player?.name ?? "",
     nickname: player?.nickname ?? "",
     position: player?.position ?? "",
-    jersey_number: player?.jersey_number?.toString() ?? "",
-    email: player?.email ?? "",
+    jersey_number:
+      player?.jersey_number?.toString() ?? "",
+    photo_url: player?.photo_url ?? "",
   });
 
-  const save = async () => {
-    if (!form.name.trim()) return toast.error("Nome é obrigatório");
-    
-    // Forçamos o tipo 'any' aqui para evitar o erro de 'never' no campo email
-    const payload: any = { 
-      name: form.name.trim(),
-      nickname: form.nickname.trim() || null,
-      position: form.position.trim() || null,
-      jersey_number: form.jersey_number ? parseInt(form.jersey_number) : null,
-      email: form.email.trim() || null,
-      active: true
-    };
+  async function uploadPhoto(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
 
-    const { error } = player 
-      ? await supabase.from("players").update(payload).eq("id", player.id)
-      : await supabase.from("players").insert([payload]);
+    if (!file) return;
+
+    const fileName = `${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage
+      .from("players")
+      .upload(fileName, file);
 
     if (error) {
       toast.error(error.message);
-    } else { 
-      toast.success("Dados salvos!"); 
-      onDone(); 
+      return;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage
+      .from("players")
+      .getPublicUrl(fileName);
+
+    setForm({
+      ...form,
+      photo_url: publicUrl,
+    });
+
+    toast.success("Foto enviada!");
+  }
+
+  const save = async () => {
+
+    if (!form.name.trim()) {
+      return toast.error("Nome obrigatório");
+    }
+
+    const payload: any = {
+      name: form.name,
+      nickname: form.nickname || null,
+      position: form.position || null,
+      jersey_number: form.jersey_number
+        ? parseInt(form.jersey_number)
+        : null,
+      photo_url: form.photo_url || null,
+      active: true,
+    };
+
+    const { error } = player
+      ? await supabase
+          .from("players")
+          .update(payload)
+          .eq("id", player.id)
+      : await supabase
+          .from("players")
+          .insert([payload]);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Atleta salvo!");
+      onDone();
     }
   };
 
   return (
     <div className="space-y-4 pt-4">
-      <div className="space-y-1.5">
-        <Label className="text-[10px] font-black uppercase ml-1">Nome Completo</Label>
-        <Input className="rounded-xl" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+
+      <div>
+        <Label>Nome</Label>
+
+        <Input
+          value={form.name}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              name: e.target.value,
+            })
+          }
+        />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-[10px] font-black uppercase ml-1">Apelido</Label>
-          <Input className="rounded-xl" value={form.nickname} onChange={e => setForm({...form, nickname: e.target.value})} />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-[10px] font-black uppercase ml-1">Nº Camisa</Label>
-          <Input className="rounded-xl" type="number" value={form.jersey_number} onChange={e => setForm({...form, jersey_number: e.target.value})} />
-        </div>
+
+      <div>
+        <Label>Apelido</Label>
+
+        <Input
+          value={form.nickname}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              nickname: e.target.value,
+            })
+          }
+        />
       </div>
-      <div className="space-y-1.5">
-        <Label className="text-[10px] font-black uppercase ml-1">Posição</Label>
-        <Input className="rounded-xl" value={form.position} onChange={e => setForm({...form, position: e.target.value})} />
+
+      <div>
+        <Label>Posição</Label>
+
+        <Input
+          value={form.position}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              position: e.target.value,
+            })
+          }
+        />
       </div>
-      <div className="space-y-1.5">
-        <Label className="text-[10px] font-black uppercase ml-1">E-mail</Label>
-        <Input className="rounded-xl" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+
+      <div>
+        <Label>Número</Label>
+
+        <Input
+          type="number"
+          value={form.jersey_number}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              jersey_number: e.target.value,
+            })
+          }
+        />
       </div>
-      <Button className="w-full h-12 font-black uppercase italic rounded-xl mt-2" onClick={save}>
-        {player ? "Atualizar Atleta" : "Cadastrar Atleta"}
+
+      <div>
+        <Label>Foto do Jogador</Label>
+
+        <Input
+          type="file"
+          onChange={uploadPhoto}
+        />
+
+        {form.photo_url && (
+          <img
+            src={form.photo_url}
+            className="mt-4 h-48 w-full rounded-2xl object-cover"
+          />
+        )}
+      </div>
+
+      <Button
+        onClick={save}
+        className="w-full h-12"
+      >
+        {player ? "Atualizar" : "Cadastrar"}
       </Button>
+
     </div>
   );
 }
