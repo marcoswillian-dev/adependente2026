@@ -5,11 +5,12 @@ export default defineConfig({
     ssr: false, 
   },
   vite: {
-    base: './', 
+    base: "/", 
     build: {
-      outDir: 'dist',
+      // Forçamos o Vite a ignorar a pasta 'client' e jogar tudo na 'dist'
+      outDir: "dist",
       emptyOutDir: true,
-      assetsDir: 'assets',
+      assetsDir: "assets",
     },
   },
 });

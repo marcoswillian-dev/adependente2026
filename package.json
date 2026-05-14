@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && (cp -r dist/client/* dist/ || true) && (rm -rf dist/client || true)",
-    "build:dev": "vite build --mode development",
+    "build": "vite build ",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
