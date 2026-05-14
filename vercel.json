@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "outputDirectory": "dist",
+  "public": true,
   "cleanUrls": true,
+  "outputDirectory": "dist",
   "rewrites": [
+    {
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
