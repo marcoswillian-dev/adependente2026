@@ -6,6 +6,8 @@ export default defineConfig({
   },
 
   vite: {
+    appType: "spa",
+
     base: "/",
 
     server: {
@@ -19,7 +21,6 @@ export default defineConfig({
     },
 
     build: {
-      // Gera a build na pasta dist
       outDir: "dist",
       emptyOutDir: true,
       assetsDir: "assets",
