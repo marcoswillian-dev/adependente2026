@@ -3,14 +3,14 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
+ 
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "bun .output/server/index.mjs",
-    "preview": "vite preview",
-    "lint": "eslint .",
-    "format": "prettier --write ."
+    "start": "vite preview --host 0.0.0.0 --port $PORT",
+    "preview": "vite preview"
   },
+
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
     "@hookform/resolvers": "^5.2.2",
