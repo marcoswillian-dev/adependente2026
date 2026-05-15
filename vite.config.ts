@@ -6,8 +6,6 @@ export default defineConfig({
   },
 
   vite: {
-    appType: "spa",
-
     base: "/",
 
     build: {
@@ -18,12 +16,12 @@ export default defineConfig({
 
     server: {
       host: "0.0.0.0",
-      allowedHosts: ["adependente2026.onrender.com"],
+      allowedHosts: [".onrender.com"],
     },
 
     preview: {
       host: "0.0.0.0",
-      allowedHosts: ["adependente2026.onrender.com"],
+      allowedHosts: [".onrender.com"],
     },
   },
 });
