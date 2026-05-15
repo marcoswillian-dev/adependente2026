@@ -2,12 +2,24 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   tanstackStart: {
-    ssr: false, 
+    ssr: false,
   },
+
   vite: {
-    base: "/", 
+    base: "/",
+
+    server: {
+      host: "0.0.0.0",
+      allowedHosts: ["adependente2026.onrender.com"],
+    },
+
+    preview: {
+      host: "0.0.0.0",
+      allowedHosts: ["adependente2026.onrender.com"],
+    },
+
     build: {
-      // Forçamos o Vite a ignorar a pasta 'client' e jogar tudo na 'dist'
+      // Gera a build na pasta dist
       outDir: "dist",
       emptyOutDir: true,
       assetsDir: "assets",
