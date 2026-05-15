@@ -10,6 +10,12 @@ export default defineConfig({
 
     base: "/",
 
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
+      assetsDir: "assets",
+    },
+
     server: {
       host: "0.0.0.0",
       allowedHosts: ["adependente2026.onrender.com"],
@@ -18,12 +24,6 @@ export default defineConfig({
     preview: {
       host: "0.0.0.0",
       allowedHosts: ["adependente2026.onrender.com"],
-    },
-
-    build: {
-      outDir: "dist",
-      emptyOutDir: true,
-      assetsDir: "assets",
     },
   },
 });
