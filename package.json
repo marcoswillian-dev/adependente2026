@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
-    "start": "serve -s dist/client -l 10000"
+    "build": "vite build"
+    
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
