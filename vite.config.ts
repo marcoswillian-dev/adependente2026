@@ -8,6 +8,16 @@ export default defineConfig({
   vite: {
     base: "/",
 
+    server: {
+      host: "0.0.0.0",
+      allowedHosts: [".onrender.com"],
+    },
+
+    preview: {
+      host: "0.0.0.0",
+      allowedHosts: [".onrender.com"],
+    },
+
     build: {
       outDir: "dist",
       emptyOutDir: true,
